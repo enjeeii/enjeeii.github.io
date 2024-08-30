@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.enjee.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="通过热更新，在程序不停机的情况下，就可以调整修改程序的执行逻辑 热更新机制通常会被用于以下场景：  开发阶段使用热更来修改调试，可以提高开发效率 使用热更来修复 Bug 使用热更来提供新的特性，比如修改配置数值等">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python-hot-reload">
+<meta property="og:url" content="http://blog.enjee.site/posts/edea7c45.html">
+<meta property="og:site_name" content="Enjee Blog">
+<meta property="og:description" content="通过热更新，在程序不停机的情况下，就可以调整修改程序的执行逻辑 热更新机制通常会被用于以下场景：  开发阶段使用热更来修改调试，可以提高开发效率 使用热更来修复 Bug 使用热更来提供新的特性，比如修改配置数值等">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-08-21T08:08:16.000Z">
+<meta property="article:modified_time" content="2024-08-21T08:16:18.330Z">
+<meta property="article:author" content="Enjee ii">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="hotreload">
+<meta property="article:tag" content="热更新">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://blog.enjee.site/posts/edea7c45.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.enjee.site/posts/edea7c45.html","path":"posts/edea7c45.html","title":"python-hot-reload"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>python-hot-reload | Enjee Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Enjee Blog</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-importlib-reload-%E6%9B%B4%E6%96%B0%E6%A8%A1%E5%9D%97"><span class="nav-number">1.</span> <span class="nav-text">使用 importlib.reload 更新模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">1.1.</span> <span class="nav-text">使用方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">1.2.</span> <span class="nav-text">注意事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E6%9B%BF%E6%8D%A2"><span class="nav-number">2.</span> <span class="nav-text">对象替换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%BF%E6%8D%A2%E5%90%8D%E5%AD%97%E6%89%80%E7%BB%91%E5%AE%9A%E7%9A%84%E5%AF%B9%E8%B1%A1"><span class="nav-number">2.1.</span> <span class="nav-text">替换名字所绑定的对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E5%A4%8D%E6%9D%82%E7%9A%84%E6%83%85%E5%86%B5"><span class="nav-number">2.2.</span> <span class="nav-text">更复杂的情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">2.3.</span> <span class="nav-text">函数执行过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E5%87%BD%E6%95%B0%E5%AF%B9%E8%B1%A1"><span class="nav-number">2.4.</span> <span class="nav-text">更新函数对象</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Enjee ii"
+      src="/images/avatar-icon.jpg">
+  <p class="site-author-name" itemprop="name">Enjee ii</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.enjee.site/posts/edea7c45.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-icon.jpg">
+      <meta itemprop="name" content="Enjee ii">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Enjee Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="python-hot-reload | Enjee Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          python-hot-reload
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2024-08-21 08:08:16 / 修改时间：08:16:18" itemprop="dateCreated datePublished" datetime="2024-08-21T08:08:16+00:00">2024-08-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>通过热更新，在程序不停机的情况下，就可以调整修改程序的执行逻辑</p>
+<p>热更新机制通常会被用于以下场景：</p>
+<ol>
+<li>开发阶段使用热更来修改调试，可以提高开发效率</li>
+<li>使用热更来修复 Bug</li>
+<li>使用热更来提供新的特性，比如修改配置数值等</li>
+</ol>
+<p>在 Python 中进行热更新，有两种方式：</p>
+<ol>
+<li>使用标准库重新导入模块</li>
+<li>通过替换对象修改其表现逻辑</li>
+</ol>
+<h2 id="使用-importlib-reload-更新模块"><a href="#使用-importlib-reload-更新模块" class="headerlink" title="使用 importlib.reload 更新模块"></a>使用 <code>importlib.reload</code> 更新模块</h2><p>在第一种方式中，使用标准库提供的方法 <code>importlib.reload</code> 重新导入模块时，程序将执行：</p>
+<ol>
+<li>重新编译模块代码</li>
+<li>重新执行模块级代码</li>
+<li>加载器会为所有绑定新模块中的名称重新定义一个对象集合（模块中的名称都会引用新的对象）</li>
+</ol>
+<h3 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> importlib</span><br><span class="line">newlib = importlib.reload(libname) <span class="comment"># 重新载入 libname 模块，并返回新导入的模块</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><ul>
+<li>需要重新导入的模块名作为参数传入，必须是一个已经被导入的模块</li>
+<li>旧模块中的对象不会做任何特殊处理，因此：<ul>
+<li>如果在新模块中没有覆盖旧的定义，则旧的对象仍能被引用</li>
+<li>其他模块对旧对象的引用仍然执行原本的对象</li>
+<li>旧对象的引用计数为 0 后才会被回收</li>
+</ul>
+</li>
+<li>使用 <code>from ... import ...</code> 导入的对象不会因为重新导入了那个模块而被更新</li>
+<li>旧模块的类在更新前所创建的对象仍然遵循旧的类所定义的行为</li>
+<li>不推荐重新加载内置模块</li>
+</ul>
+<p>下面是一些例子：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># | file: reloadlib.py</span></span><br><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"></span><br><span class="line">var_a = <span class="string">&#x27;This Is New Var a.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">testFunc</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call New TestFunc.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TestClass</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">testFunc</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;Call New TestClass::testFunc.&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># | file: reloadlib_new.py</span></span><br><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"></span><br><span class="line">var_a = <span class="string">&#x27;This Is New Var a.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">testFunc</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call New TestFunc.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TestClass</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">testFunc</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;Call New TestClass::testFunc.&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># | file: reloadlib_new.py</span></span><br><span class="line"><span class="comment"># +================================</span></span><br><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> importlib</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> reloadlib</span><br><span class="line"><span class="keyword">from</span> reloadlib <span class="keyword">import</span> testFunc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;before reload.&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;var_a:&#x27;</span>, reloadlib.var_a)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;var_b:&#x27;</span>, reloadlib.var_b)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;lib func:&#x27;</span>, reloadlib.testFunc())</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;from lib func:&#x27;</span>, testFunc())</span><br><span class="line"></span><br><span class="line">    o = reloadlib.TestClass()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;obj func:&#x27;</span>, o.testFunc())</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 重新旧的模块文件</span></span><br><span class="line">    os.system(<span class="string">&#x27;mv reloadlib.py reloadlib.py.bak&#x27;</span>)</span><br><span class="line">    os.system(<span class="string">&#x27;cp reloadlib_new.py reloadlib.py&#x27;</span>)</span><br><span class="line">    <span class="comment"># 重新加载模块</span></span><br><span class="line">    reloadlib_new = importlib.reload(reloadlib)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;\n\n&#x27;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;after reload.&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 被覆盖的名字指向新的对象</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;var_a:&#x27;</span>, reloadlib.var_a)</span><br><span class="line">    <span class="comment"># 未被覆盖的名字仍然指向旧对象</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;var_b:&#x27;</span>, reloadlib.var_b)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;lib func:&#x27;</span>, reloadlib.testFunc())</span><br><span class="line">    <span class="comment"># 通过 from ... import ... 引入的名字仍然指向旧对象</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;from lib func:&#x27;</span>, testFunc())</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 重新载入前已经创建的对象不会被改变</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;obj func:&#x27;</span>, o.testFunc())</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;new obj func:&#x27;</span>, reloadlib.TestClass().testFunc())</span><br></pre></td></tr></table></figure>
+<p>执行后可以看到以下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ python3 main.py</span><br><span class="line">before reload.</span><br><span class="line">var_a: This Is Old Var a.</span><br><span class="line">var_b: This Is Old Var b.</span><br><span class="line">lib func: Call Old TestFunc.</span><br><span class="line">from lib func: Call Old TestFunc.</span><br><span class="line">obj func: Call Old TestClass::testFunc.</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">after reload.</span><br><span class="line">var_a: This Is New Var a.</span><br><span class="line">var_b: This Is Old Var b.</span><br><span class="line">lib func: Call New TestFunc.</span><br><span class="line">from lib func: Call Old TestFunc.</span><br><span class="line">obj func: Call Old TestClass::testFunc.</span><br><span class="line">new obj func: Call New TestClass::testFunc.</span><br></pre></td></tr></table></figure>
+
+<h2 id="对象替换"><a href="#对象替换" class="headerlink" title="对象替换"></a>对象替换</h2><p>通过替换对象的方式可以进行程序行为变更的可行性在于，Python 中的一切都是对象；普通的变量显而易见，而对于函数等可执行的代码也是作为对象被 Python 虚拟机所引用的</p>
+<p>常见的可调用对象有：</p>
+<ol>
+<li>函数（用户自定义的函数）</li>
+<li>实例方法（类、类实例所关联函数）</li>
+<li>内置函数</li>
+<li>生成器函数（使用了 <code>yeild</code> 的函数）</li>
+<li>类（本质上，通过类名创建实例的过程也是一个函数调用的过程）</li>
+<li>类实例（定义了 <code>__call__</code> 方法）</li>
+</ol>
+<h3 id="替换名字所绑定的对象"><a href="#替换名字所绑定的对象" class="headerlink" title="替换名字所绑定的对象"></a>替换名字所绑定的对象</h3><p>通过对象替换的方式来实现改变程序行为的目的，往往就是将一个函数（方法）所对应的对象修改为能够按照预期执行的新对象<br>要达成这个目的，最简单的方法就是直接将名字绑定到新的对象上</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">test_func</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call test_func_old.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">test_func_new</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call test_func_new.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(test_func())  <span class="comment"># print: Call test_func_old.</span></span><br><span class="line">    test_func = test_func_new</span><br><span class="line">    <span class="built_in">print</span>(test_func())  <span class="comment"># print: Call test_func_new.</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="更复杂的情况"><a href="#更复杂的情况" class="headerlink" title="更复杂的情况"></a>更复杂的情况</h3><p>然而，实践过程中往往会出现更复杂的情况，例如，想要更新的函数被某个对象所引用（比如出现在也给函数列表里），这时就无法通过修改原本模块中的名字所绑定的对象来达到目的了，例如：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">test_func</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call test_func_old.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">test_func_new</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call test_func_new.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    fn = test_func</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call test_func_old.</span></span><br><span class="line">    test_func = test_func_new</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call test_func_old.</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="函数执行过程"><a href="#函数执行过程" class="headerlink" title="函数执行过程"></a>函数执行过程</h3><p>这时，可能需要更新所有的引用才能达到目的；对于上面的例子来说是很容易做到的，但是，实际上的情况可能要复杂的多得多，往往是很难遍历到所有引用的，所以这种情况下就不能仅仅只修改这个名字的绑定了，而是要修改这个函数对象的执行逻辑<br>再继续之前，先来看看一个函数执行的过程：</p>
+<ol>
+<li>定义函数，函数定义（<code>def xxx(): xxx</code>）是可执行语句，它会产生一个函数对象并将其绑定到对应的名字上</li>
+<li>在上面产生的这个函数对象中，会包含一些属性，比如 <code>__name__</code> 是这个函数的名字等，这些属性中就包含了规定这个函数如何执行所必须的信息</li>
+<li>如果这个函数定义在类体内，那它就是这个类的成员函数；对于成员函数而言，它首先是一个属性对象，其次这个属性对象拥有 <code>__self__</code> 和 <code>__func__</code> 这两个只读属性，一个指向所绑定的实例对象（对于类方法就是类对象，对于类实例方法就是类实例对象），一个指向所绑定的函数对象</li>
+<li>在执行一个调用时，首先会找到该名字所绑定的函数对象，然后再根据这个对象中所包含的信息来执行<ul>
+<li>如果调用的是方法，则会将其绑定的实例对象（<code>__self__</code>）作为第一个参数传入</li>
+</ul>
+</li>
+<li>到此，一个函数的执行就结束了</li>
+</ol>
+<h3 id="更新函数对象"><a href="#更新函数对象" class="headerlink" title="更新函数对象"></a>更新函数对象</h3><p>在上面的执行过程中说到，函数执行时会根据其自身函数对象所包含的信息执行，这些信息主要包括：</p>
+<table>
+<thead>
+<tr>
+<th align="left">属性名</th>
+<th align="left">作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><code>__code__</code></td>
+<td align="left">已编译函数体的代码对象，当一个函数执行时如何在栈帧上展开就是通过它来实现</td>
+</tr>
+<tr>
+<td align="left"><code>__defaults__</code></td>
+<td align="left">包含具有默认值的形参默认值所组成的 tuple</td>
+</tr>
+<tr>
+<td align="left"><code>__kwdefaults__</code></td>
+<td align="left">包含仅限关键字形参默认值的 dict</td>
+</tr>
+</tbody></table>
+<p>如此，我们只需要修改函数对象的这几个属性，就能达到修改函数逻辑的目的：</p>
+<ol>
+<li>如果只需要修改代码，则修改 <code>__code__</code> 属性</li>
+<li>如果需要修改位置参数默认值，则修改 <code>__defaults__</code> 属性</li>
+<li>如果需要修改仅限关键字参数的默认值，则修改 <code>__kwdefaults__</code> 属性</li>
+</ol>
+<p>下面是一些例子：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">func_1</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call func_1.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">func_2</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call func_2.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">func_3</span>(<span class="params">arg1, arg2</span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f&#x27;Call func_3: <span class="subst">&#123;arg1&#125;</span>, <span class="subst">&#123;arg2&#125;</span>&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">func_4</span>(<span class="params">arg1=<span class="number">1</span>, arg2=<span class="number">2</span>, *, kwarg1=<span class="string">&#x27;kw1&#x27;</span>, kwarg2=<span class="string">&#x27;kw2&#x27;</span></span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="string">f&#x27;Call func_4: <span class="subst">&#123;arg1&#125;</span>, <span class="subst">&#123;arg2&#125;</span>, <span class="subst">&#123;kwarg1&#125;</span>, <span class="subst">&#123;kwarg2&#125;</span>&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Class</span>():</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">func</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;Call Class::func.&#x27;</span></span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">funccc</span>(<span class="params">self</span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Call funccc.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    fn = func_1</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call func_1.</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 修改代码对象</span></span><br><span class="line">    func_1.__code__ = func_2.__code__</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call func_2.</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 修改代码对象并加上形参默认值</span></span><br><span class="line">    func_1.__code__ = func_3.__code__</span><br><span class="line">    func_1.__defaults__ = (<span class="number">1</span>, <span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call func_3: 1, 2</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 修改代码对象并修改仅限位置参数形参默认值</span></span><br><span class="line">    func_1.__code__ = func_4.__code__</span><br><span class="line">    func_1.__kwdefaults__ = &#123;<span class="string">&#x27;kwarg1&#x27;</span>: <span class="string">&#x27;new_kw1&#x27;</span>, <span class="string">&#x27;kwarg2&#x27;</span>: <span class="string">&#x27;new_kw2&#x27;</span>&#125;</span><br><span class="line">    <span class="built_in">print</span>(fn())  <span class="comment"># print: Call func_4: 1, 2, new_kw1, new_kw2</span></span><br><span class="line"></span><br><span class="line">    c = Class()</span><br><span class="line">    <span class="built_in">print</span>(c.func())  <span class="comment"># print: Call Class::func.</span></span><br><span class="line">    c.func.__func__.__code__ = funccc.__code__</span><br><span class="line">    <span class="built_in">print</span>(c.func())  <span class="comment"># print: Call funccc.</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>在 Python 虚拟机里，所有的一切都被封装成了对象管理，数据是对象，执行逻辑也是对象<br>本质上来说，通过 <code>importlib.reload</code> 来更新模块也是将名字绑定到了新的对象上<br>在实际生产环境中，一般是通过修改函数名字所绑定的函数对象，或者修改函数对象来实现热更，因为重载模块的方式波及面广，很容易引入错误</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p>[1] <a target="_blank" rel="noopener" href="https://github.com/ipython/ipython/blob/main/IPython/extensions/autoreload.py">IPython 的 autoreload 实现</a><br>[2] <a target="_blank" rel="noopener" href="https://docs.python.org/zh-cn/3.7/reference/datamodel.html#types">Python 数据模型</a><br>[3] <a target="_blank" rel="noopener" href="https://docs.python.org/zh-cn/3.7/library/importlib.html">Python 标准库 importlib</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/hotreload/" rel="tag"># hotreload</a>
+              <a href="/tags/%E7%83%AD%E6%9B%B4%E6%96%B0/" rel="tag"># 热更新</a>
+          </div>
+
+        
+
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Enjee ii</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
