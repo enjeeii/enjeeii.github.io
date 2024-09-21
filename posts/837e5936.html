@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.enjee.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="为了方便维护及复用等需求，Python 将各种定义存入一个个脚本文件中，供需要时导入使用这些脚本文件就是一个个模块，模块（们）经过合理的组织成为一个个包包和模块即是 Python 用来管理、组织源代码的手段 包和模块包和模块在 Python 中可以类比于文件系统中的目录和文件，其共同组成了 Python 程序的代码架构">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python | 浅谈模块导入机制">
+<meta property="og:url" content="http://blog.enjee.site/posts/837e5936.html">
+<meta property="og:site_name" content="Enjee Blog">
+<meta property="og:description" content="为了方便维护及复用等需求，Python 将各种定义存入一个个脚本文件中，供需要时导入使用这些脚本文件就是一个个模块，模块（们）经过合理的组织成为一个个包包和模块即是 Python 用来管理、组织源代码的手段 包和模块包和模块在 Python 中可以类比于文件系统中的目录和文件，其共同组成了 Python 程序的代码架构">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-08-21T08:08:16.000Z">
+<meta property="article:modified_time" content="2024-09-21T07:50:14.526Z">
+<meta property="article:author" content="Enjee ii">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="import">
+<meta property="article:tag" content="module">
+<meta property="article:tag" content="模块">
+<meta property="article:tag" content="package">
+<meta property="article:tag" content="包">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://blog.enjee.site/posts/837e5936.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.enjee.site/posts/837e5936.html","path":"posts/837e5936.html","title":"Python | 浅谈模块导入机制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Python | 浅谈模块导入机制 | Enjee Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Enjee Blog</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8C%85%E5%92%8C%E6%A8%A1%E5%9D%97"><span class="nav-number">1.</span> <span class="nav-text">包和模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97"><span class="nav-number">1.1.</span> <span class="nav-text">模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%85"><span class="nav-number">1.2.</span> <span class="nav-text">包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%85%E5%92%8C%E6%A8%A1%E5%9D%97%E7%9A%84%E4%B8%80%E4%BA%9B%E4%BE%8B%E5%AD%90"><span class="nav-number">1.3.</span> <span class="nav-text">包和模块的一些例子</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%BC%E5%85%A5%E6%A8%A1%E5%9D%97"><span class="nav-number">2.</span> <span class="nav-text">导入模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%BC%E5%85%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">2.1.</span> <span class="nav-text">导入过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#importlib-%E4%B8%AD%E7%9A%84%E4%B8%80%E4%BA%9B%E5%B7%A5%E5%85%B7"><span class="nav-number">2.2.</span> <span class="nav-text">importlib 中的一些工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E6%A8%A1%E5%9D%97%E5%AF%BC%E5%85%A5%E7%9A%84%E4%BE%8B%E5%AD%90"><span class="nav-number">2.3.</span> <span class="nav-text">一些模块导入的例子</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Enjee ii"
+      src="/images/avatar-icon.jpg">
+  <p class="site-author-name" itemprop="name">Enjee ii</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.enjee.site/posts/837e5936.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-icon.jpg">
+      <meta itemprop="name" content="Enjee ii">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Enjee Blog">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Python | 浅谈模块导入机制 | Enjee Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Python | 浅谈模块导入机制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-08-21 08:08:16" itemprop="dateCreated datePublished" datetime="2024-08-21T08:08:16+00:00">2024-08-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-09-21 07:50:14" itemprop="dateModified" datetime="2024-09-21T07:50:14+00:00">2024-09-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>为了方便维护及复用等需求，Python 将各种定义存入一个个脚本文件中，供需要时导入使用<br>这些脚本文件就是一个个模块，模块（们）经过合理的组织成为一个个包<br>包和模块即是 Python 用来管理、组织源代码的手段</p>
+<h2 id="包和模块"><a href="#包和模块" class="headerlink" title="包和模块"></a>包和模块</h2><p>包和模块在 Python 中可以类比于文件系统中的目录和文件，其共同组成了 Python 程序的代码架构</p>
+<h3 id="模块"><a href="#模块" class="headerlink" title="模块"></a>模块</h3><p>模块是包含 Python 定义和语句的文件，其文件名为模块名加上 <code>.py</code> 后缀名，其中定义的名字可以被其他模块导入使用<br>在模块内部，通过全局变量 <code>__name__</code> 可以获取模块的名字，特别地，在命令行直接执行脚本时 <code>__name__</code> 属性会被赋值为字符串 <code>__main__</code><br>模块中的可执行语句和各类定义语句会在第一次被导入时，或者直接运行时执行<br>每个模块拥有自己的命名空间，被用作模块内所有定义的全局命名空间；在模块内导入其他模块时，会将导入的模块通过对应的名字绑定到全局命名空间中  </p>
+<blockquote>
+<p>关于命名空间：名字到对象的映射集合<br>一个命名空间的作用域是这个命名空间中的名字所能生效的区域，常见有：</p>
+<blockquote>
+<ol>
+<li>最内层的作用域，包含局部名称（通常是函数）</li>
+<li>外层作用域，包括外层函数等 “非全局、非局部” 的名字</li>
+<li>全局作用域，包含当前模块的全局名称</li>
+<li>最外层的作用域，是内置名称的命名空间</li>
+</ol>
+</blockquote>
+<p>基于以上，对于两个改变作用域的关键字：<br><code>global</code> 重新绑定到全局名字<br><code>nonlocal</code> 重新绑定到非局部的外层作用域中的名字（排除当前最内层的作用域逐步向外搜，搜到谁是谁）  </p>
+</blockquote>
+<h3 id="包"><a href="#包" class="headerlink" title="包"></a>包</h3><p>包作为模块的集合（也可以拥有子包是包的集合），可以有效地对模块进行分类和管理<br>在 Python 包有两种形式：常规包和命名空间包；而无论哪种类型的包，都拥有一个 <code>__path__</code> 的属性，其会影响模块的搜索路径<br>特别地，如果一个模块拥有 <code>__path__</code> 属性，则会被视为一个包  </p>
+<p><strong>常规包</strong><br>一个带有 <code>__init__.py</code> 文件（可以是一个空文件）的目录<br>在导入常规包时，<code>__init__.py</code> 文件会被执行，其中的定义会被绑定到包的全局命名空间中，其中有两个特殊的属性需要注意：</p>
+<ol>
+<li><code>__path__</code><br> 这个属性是一个列表并且可以修改，并且可修改<br> 在 <code>__init__.py</code> 脚本执行前，这个属性被初始化为脚本所在目录<br> 上面说到这个属性会影响包内的模块搜索路径，即在搜索这个包中的模块或子包时，会在这个属性所列出的目录中搜索  </li>
+<li><code>__all__</code><br> 这个属性是一个可定义的列表（或元组，建议使用元组）<br> 具有提示包导入时那些名字可以被导入的作用，这个提示具体体现在使用 <code>from package import *</code> 语法导入时，会导入这个列表里的名字<br> 另外，这个属性也可以在模块中出现，具有同样的作用</li>
+</ol>
+<p><strong>命名空间包</strong>  </p>
+<blockquote>
+<p>PEP 420 引入  </p>
+</blockquote>
+<p>不带 <code>__init__.py</code> 文件的目录，并且可以由多个同名的目录共同组成一个包<br>我对于命名空间包的理解，类似于 C++ 中的 namespace 可以在任何地方出现，不同位置出现的同名 namespace 也视为同一个名字空间  </p>
+<h3 id="包和模块的一些例子"><a href="#包和模块的一些例子" class="headerlink" title="包和模块的一些例子"></a>包和模块的一些例子</h3><p><strong>模块属性 <code>__name__</code></strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;__name__ is&quot;</span>, __name__)</span><br></pre></td></tr></table></figure>
+<p>这个脚本文件在直接执行时 <code>__name__</code> 被置位 <code>__main__</code>，在导入时被置为模块名 <code>test</code>：  </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">└── test.py</span><br><span class="line"></span><br><span class="line">$ python test.py</span><br><span class="line">__name__ is __main__</span><br><span class="line"></span><br><span class="line">$ python</span><br><span class="line">Python 3.6.8 (default, Nov 16 2020, 16:55:22)</span><br><span class="line">[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)] on linux</span><br><span class="line">Type <span class="string">&quot;help&quot;</span>, <span class="string">&quot;copyright&quot;</span>, <span class="string">&quot;credits&quot;</span> or <span class="string">&quot;license&quot;</span> <span class="keyword">for</span> more information.</span><br><span class="line">&gt;&gt;&gt; import <span class="built_in">test</span></span><br><span class="line">__name__ is <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>包属性 <code>__path__</code></strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/bar/item.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module item.&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/baz/item2.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module item2.&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/__init__.py 修改前</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;__path__ is &#x27;</span>, __path__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/__init__.py 修改后</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">__path__ = [<span class="string">&#x27;/home/enjeeii/test/foo/baz&#x27;</span>, <span class="string">&#x27;/home/enjeeii/test/foo/bar&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;__path__ is &#x27;</span>, __path__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">import</span> foo.item</span><br><span class="line"><span class="keyword">import</span> foo.item2</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;do test.&#x27;</span>)</span><br></pre></td></tr></table></figure>
+<p>如之前所说，<code>__path__</code> 属性会影响包内的搜索路径：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">├── foo</span><br><span class="line">│   ├── bar</span><br><span class="line">│   │   └── item.py</span><br><span class="line">│   ├── baz</span><br><span class="line">│   │   └── item2.py</span><br><span class="line">│   └── __init__.py</span><br><span class="line">└── test.py</span><br><span class="line"></span><br><span class="line"><span class="comment"># 修改 __path__ 前</span></span><br><span class="line">$ python test.py</span><br><span class="line">__path__ is  [<span class="string">&#x27;/home/enjeeii/test/foo&#x27;</span>]</span><br><span class="line">Traceback (most recent call last):</span><br><span class="line">  File <span class="string">&quot;test.py&quot;</span>, line 1, <span class="keyword">in</span> &lt;module&gt;</span><br><span class="line">    import foo.item</span><br><span class="line">ModuleNotFoundError: No module named <span class="string">&#x27;foo.item&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 修改 __path__ 后</span></span><br><span class="line">$ python test.py</span><br><span class="line">__path__ is  [<span class="string">&#x27;/home/enjeeii/test/foo/baz&#x27;</span>, <span class="string">&#x27;/home/enjeeii/test/foo/bar&#x27;</span>]</span><br><span class="line">import module item.</span><br><span class="line">import module item2.</span><br><span class="line"><span class="keyword">do</span> <span class="built_in">test</span>.</span><br></pre></td></tr></table></figure>
+
+<p><strong>属性 <code>__all__</code></strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/__init__.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">__all__ = (<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>)</span><br><span class="line"></span><br><span class="line">a = <span class="string">&#x27;this is a.&#x27;</span></span><br><span class="line">b = <span class="string">&#x27;this is b.&#x27;</span></span><br><span class="line">c = <span class="string">&#x27;this is c.&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: item.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">__all__ = (<span class="string">&#x27;d&#x27;</span>, <span class="string">&#x27;e&#x27;</span>, <span class="string">&#x27;f&#x27;</span>)</span><br><span class="line"></span><br><span class="line">d = <span class="string">&#x27;this is d.&#x27;</span></span><br><span class="line">e = <span class="string">&#x27;this is e.&#x27;</span></span><br><span class="line">f = <span class="string">&#x27;this is f.&#x27;</span></span><br><span class="line">g = <span class="string">&#x27;this is g.&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;do test import.&#x27;</span>)</span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> *   <span class="comment"># 这个会导入 a b c</span></span><br><span class="line"><span class="keyword">from</span> item <span class="keyword">import</span> *  <span class="comment"># 这个会导入 d e f</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">dir</span>())        <span class="comment"># 看看当前命名空间中有哪些名字被引入了</span></span><br><span class="line"><span class="built_in">print</span>(a, b, c, d, e, f)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;do test name import.&#x27;</span>)</span><br><span class="line"><span class="keyword">from</span> item <span class="keyword">import</span> g  <span class="comment"># 通过这种方式还是可以忽略 __all__ 指定导入 g</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">dir</span>())</span><br><span class="line"><span class="built_in">print</span>(g)</span><br></pre></td></tr></table></figure>
+<p>执行以上代码可以看到名字导入情况：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">├── foo</span><br><span class="line">│   └── __init__.py</span><br><span class="line">├── item.py</span><br><span class="line">└── test.py</span><br><span class="line"></span><br><span class="line">$ python test.py</span><br><span class="line"><span class="keyword">do</span> <span class="built_in">test</span> import.</span><br><span class="line">[<span class="string">&#x27;__annotations__&#x27;</span>, <span class="string">&#x27;__builtins__&#x27;</span>, <span class="string">&#x27;__cached__&#x27;</span>, <span class="string">&#x27;__doc__&#x27;</span>, <span class="string">&#x27;__file__&#x27;</span>, <span class="string">&#x27;__loader__&#x27;</span>, <span class="string">&#x27;__name__&#x27;</span>, <span class="string">&#x27;__package__&#x27;</span>, <span class="string">&#x27;__spec__&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>, <span class="string">&#x27;d&#x27;</span>, <span class="string">&#x27;e&#x27;</span>, <span class="string">&#x27;f&#x27;</span>]</span><br><span class="line">this is a. this is b. this is c. this is d. this is e. this is f.</span><br><span class="line"><span class="keyword">do</span> <span class="built_in">test</span> name import.</span><br><span class="line">[<span class="string">&#x27;__annotations__&#x27;</span>, <span class="string">&#x27;__builtins__&#x27;</span>, <span class="string">&#x27;__cached__&#x27;</span>, <span class="string">&#x27;__doc__&#x27;</span>, <span class="string">&#x27;__file__&#x27;</span>, <span class="string">&#x27;__loader__&#x27;</span>, <span class="string">&#x27;__name__&#x27;</span>, <span class="string">&#x27;__package__&#x27;</span>, <span class="string">&#x27;__spec__&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>, <span class="string">&#x27;d&#x27;</span>, <span class="string">&#x27;e&#x27;</span>, <span class="string">&#x27;f&#x27;</span>, <span class="string">&#x27;g&#x27;</span>]</span><br><span class="line">this is g.</span><br></pre></td></tr></table></figure>
+
+<p><strong>命名空间包</strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: baz/foo/item.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module item&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: bar/foo/item2.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module item2&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># 这边首先要保证两个 foo 目录都在在搜索路径中</span></span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">sys.path.append(<span class="string">&#x27;/home/enjeeii/test/bar&#x27;</span>)</span><br><span class="line">sys.path.append(<span class="string">&#x27;/home/enjeeii/test/baz&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 两个 foo 目录共同组成一个命名空间包</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;do test import.&#x27;</span>)</span><br><span class="line"><span class="keyword">import</span> foo.item</span><br><span class="line"><span class="keyword">import</span> foo.item2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这里可以看到世界上就是包 foo 的 __path__ 属性具有两个搜索路径</span></span><br><span class="line"><span class="keyword">import</span> foo</span><br><span class="line"><span class="built_in">print</span>(foo.__path__)</span><br></pre></td></tr></table></figure>
+<p>执行以上代码查看结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ tree .</span><br><span class="line">.</span><br><span class="line">├── bar</span><br><span class="line">│   └── foo</span><br><span class="line">│       └── item2.py</span><br><span class="line">├── baz</span><br><span class="line">│   └── foo</span><br><span class="line">│       └── item.py</span><br><span class="line">└── test.py</span><br><span class="line"></span><br><span class="line">$ python test.py</span><br><span class="line"><span class="keyword">do</span> <span class="built_in">test</span> import.</span><br><span class="line">import module item</span><br><span class="line">import module item2</span><br><span class="line">_NamespacePath([<span class="string">&#x27;/home/enjeeii/test/bar/foo&#x27;</span>, <span class="string">&#x27;/home/enjeeii/test/baz/foo&#x27;</span>])</span><br></pre></td></tr></table></figure>
+
+<h2 id="导入模块"><a href="#导入模块" class="headerlink" title="导入模块"></a>导入模块</h2><p>模块导入功能用以支持导入包和模块中的代码和定义来实现复用<br>一般来说，有两种导入方式：  </p>
+<ol>
+<li><code>import ...</code>  </li>
+<li><code>from ... import ...</code></li>
+</ol>
+<p>Python 通过完整限定名称来导入模块，这是一个可以带点号的指向模块的路径名，路径上的每一个部分都会被尝试导入，并将记录到 sys.modules 中缓存<br>例如对于 <code>foo.bar.baz</code> 将会导入：包 <code>foo</code> 和子包 <code>bar</code> 以及模块 <code>baz</code>（当然也可以是个包）  </p>
+<p>这里有几点需要注意：  </p>
+<ol>
+<li>上面所说的限定名，也就是出现在 <code>import xxx</code> 句法或者是出现在 <code>from xxx import yyy</code> 句法里的 <code>xxx</code> 是一个指向脚本或者目录的路径名  </li>
+<li>限定名称的最后一部分首先会被视为脚本名，如果不存在的话才会被视为目录名，也即是说，会先尝试导入限定名称指定的模块  </li>
+<li>当使用 <code>from ... import *</code> 的方式导入时，如果定义了 <code>__all__</code> 属性，则将会首先导入其中定义的名字（如上所述），否则将会导入模块中所有已经定义且不以 <code>_</code> 开头的名字  </li>
+<li>当使用 <code>from module import item</code> 的方式导入时，首先会将 <code>item</code> 视为包中定义的名字尝试导入，没有的话才会尝试导入 <code>item</code> 模块</li>
+</ol>
+<h3 id="导入过程"><a href="#导入过程" class="headerlink" title="导入过程"></a>导入过程</h3><p>如上所述，完整限定名的每一个部分都会被尝试导入并缓存<br>当使用上面两种方式中的任一种尝试导入一个 <code>item</code> 时（可能是包或者模块），将会执行以下操作： </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">flowchart LR</span><br><span class="line">  A(do import or from import)</span><br><span class="line">  B&#123;在 sys.modules 中查找是否存在对应项&#125;</span><br><span class="line">  C(导入完成)</span><br><span class="line">  D&#123;&#123;在内置模块中搜索&#125;&#125;</span><br><span class="line">  E&#123;&#123;在 sys.path 给出的搜索目录中搜索&#125;&#125;</span><br><span class="line">  F&#123;是否搜索到结果&#125;</span><br><span class="line">  G(抛出一个错误)</span><br><span class="line">  H[[加载，并先在 sys.modules 中创建一个空项]]</span><br><span class="line">  I[[然后执行模块脚本（包的 __init__.py 脚本）]]</span><br><span class="line">  J(在当前名字空间绑定到对应的名字上)</span><br><span class="line"></span><br><span class="line">  A --- B</span><br><span class="line">  B -- YES --- C</span><br><span class="line">  B -- NO --- D</span><br><span class="line">  D --- E</span><br><span class="line">  E --- F</span><br><span class="line">  F -- NO --- G</span><br><span class="line">  F -- YES --- H</span><br><span class="line">  H --- I</span><br><span class="line">  I --- C</span><br><span class="line">  C --- J</span><br></pre></td></tr></table></figure>
+
+<p>大致过程就是先搜缓存，没有缓存就先加载到缓存，然后绑定到当前作用域<br>这里也有几个注意点：  </p>
+<ul>
+<li><code>sys.path</code> 是一个可修改的列表，通常其给出的搜索路径包括：<ol>
+<li>被命令行直接运行的脚本文件所在目录，或者没有指定文件时的当前目录</li>
+<li>PYTHONPATH 环境变量指定的目录列表</li>
+<li>标准库模块及其相关依赖模块所在目录</li>
+<li>站点配置目录 site-packages</li>
+</ol>
+</li>
+<li>在执行脚本之前先在缓存 <code>sys.modules</code> 中创建对应项的目的在于一定程度上避免循环导入</li>
+<li>缓存 <code>sys.modules</code> 可写，删除条目会导致下一次导入重新搜索，赋值为 None 则会强制下一次导入时抛错</li>
+<li>对于将找到的模块在当前作用域的名字空间中绑定到对应名称上： <ol>
+<li>如果使用 <code>as</code> 指定名字则使用所指定的名字  </li>
+<li>如果导入模块是最高层级模块则将使用该名字  </li>
+<li>如果导入模块不是最高层级模块，则将最高层级模块的名字绑定到当前名字空间，并且导入的模块必须使用完整的限定名称来访问</li>
+</ol>
+</li>
+</ul>
+<blockquote>
+<p>关于站点配置目录 <code>site-packages</code><br>由 <code>site</code> 模块管理，这个模块在初始化 <code>sys.path</code> 时自动导入（可以命令行中使用 -S 选项来屏蔽）<br>站点配置目录通常位于 Python 安装目录的 lib 目录下，例如 <code>/usr/lib/python3.6/site-packages</code>（具体规则请查阅 <a target="_blank" rel="noopener" href="https://docs.python.org/zh-cn/3/library/site.html">官方文档</a>）<br>除站点目录本身之外，还可以在目录中配置路径配置文件 <code>name.pth</code>，配置文件中的每一行会被视为 <code>site-packages</code> 的子目录被导入  </p>
+</blockquote>
+<h3 id="importlib-中的一些工具"><a href="#importlib-中的一些工具" class="headerlink" title="importlib 中的一些工具"></a><code>importlib</code> 中的一些工具</h3><ol>
+<li><code>importlib.__import__()</code> 提供内置的 <code>__import__()</code> 函数的实现，通常不应该被手动调用</li>
+<li><code>importlib.import_module()</code> 导入一个模块，是对 <code>importlib.__import__()</code> 的简单封装</li>
+<li><code>importlib.reload()</code> 用于重新加载之前已经导入的模块</li>
+</ol>
+<h3 id="一些模块导入的例子"><a href="#一些模块导入的例子" class="headerlink" title="一些模块导入的例子"></a>一些模块导入的例子</h3><p><strong>一些常用的句法</strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&#x27;&#x27;&#x27; 从包 foo 中导入模块 bar</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">├── foo</span></span><br><span class="line"><span class="string">│   └── bar.py</span></span><br><span class="line"><span class="string">└── test.py</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">import</span> foo.bar              <span class="comment"># 最高层级 foo 被绑定到当前作用域，并且只能通过完整的限定名 foo.bar 来使用</span></span><br><span class="line"><span class="built_in">print</span>(foo.bar.__name__)     <span class="comment"># print: foo.bar</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> foo.bar <span class="keyword">as</span> FB    <span class="comment"># 导入作用同上，将绑定到当前作用域的名字 FB 上</span></span><br><span class="line"><span class="built_in">print</span>(FB.__name__)      <span class="comment"># print: foo.bar</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> bar     <span class="comment"># 导入模块 bar 并将其绑定到当前作用域中</span></span><br><span class="line"><span class="built_in">print</span>(bar.__name__)     <span class="comment"># print: foo.bar</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> bar <span class="keyword">as</span> B    <span class="comment"># 导入作用同上，将绑定到当前作用域的名字 B 上</span></span><br><span class="line"><span class="built_in">print</span>(B.__name__)           <span class="comment"># print: foo.bar</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27; 从包或模块中导入对象</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">├── foo</span></span><br><span class="line"><span class="string">│   ├── bar.py</span></span><br><span class="line"><span class="string">│   └── __init__.py</span></span><br><span class="line"><span class="string">└── test.py </span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/bar.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">bar_arg = <span class="string">&#x27;this is bar arg&#x27;</span></span><br><span class="line">_bar_arg = <span class="string">&#x27;this is bar private arg&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/__init__.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">__all__ = (<span class="string">&#x27;foo_arg&#x27;</span>,)</span><br><span class="line"></span><br><span class="line">foo_arg = <span class="string">&#x27;this is foo arg&#x27;</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">foo_func</span>(): <span class="keyword">return</span> <span class="string">&#x27;this is foo func&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> *       <span class="comment"># 导入 __all__ 中定义的 foo_arg</span></span><br><span class="line"><span class="built_in">print</span>(foo_arg)          <span class="comment"># print: this is foo arg</span></span><br><span class="line"><span class="built_in">print</span>(foo_func())       <span class="comment"># 报错</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> foo_func    <span class="comment"># 指定导入 foo 中定义的 foo_func</span></span><br><span class="line"><span class="built_in">print</span>(foo_func())           <span class="comment"># print: this is foo func</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> foo.bar <span class="keyword">import</span> *   <span class="comment"># 导入 非 _ 开头的名字</span></span><br><span class="line"><span class="built_in">print</span>(bar_arg)          <span class="comment"># print: this is bar arg</span></span><br><span class="line"><span class="built_in">print</span>(_bar_arg)         <span class="comment"># 报错</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> foo.bar <span class="keyword">import</span> _bar_arg <span class="keyword">as</span> BA  <span class="comment"># 导入 _bar_arg，当然也能指定绑定到当前作用域中的名字</span></span><br><span class="line"><span class="built_in">print</span>(_bar_arg)                     <span class="comment"># print: this is bar private arg</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>限定名被优先视为模块进行导入</strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&#x27;&#x27;&#x27; 导入模块</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">├── bar</span></span><br><span class="line"><span class="string">│   └── baz.py</span></span><br><span class="line"><span class="string">├── bar.py</span></span><br><span class="line"><span class="string">└── test.py</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: bar.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module bar.&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">import</span> bar      <span class="comment"># print: import module bar.</span></span><br><span class="line"><span class="keyword">import</span> bar.baz  <span class="comment"># 报错：bar 不是一个包</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27; 导入对象</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">├── foo</span></span><br><span class="line"><span class="string">│   ├── __init__.py</span></span><br><span class="line"><span class="string">│   └── item.py</span></span><br><span class="line"><span class="string">└── test.py</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/__init__.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line">item = <span class="string">&#x27;this is foo item.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: foo/item.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;import module item.&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">from</span> foo <span class="keyword">import</span> item    <span class="comment"># 这里导入的是 __init__.py 脚本中定义的 item 没有输出</span></span><br><span class="line">                        <span class="comment"># 如果没有此定义的话则会导入模块 item.py 并输出 import module item.</span></span><br><span class="line"><span class="built_in">print</span>(item)             <span class="comment"># print: this is foo item.</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>循环导入可能产生的问题</strong>  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&#x27;&#x27;&#x27; 循环导入引发的问题</span></span><br><span class="line"><span class="string">.</span></span><br><span class="line"><span class="string">├── bar.py</span></span><br><span class="line"><span class="string">├── baz.py</span></span><br><span class="line"><span class="string">└── test.py</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: bar.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">from</span> baz <span class="keyword">import</span> baz_arg</span><br><span class="line">bar_arg = <span class="string">&#x27;this is bar arg.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: baz.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">from</span> bar <span class="keyword">import</span> bar_arg</span><br><span class="line">baz_arg = <span class="string">&#x27;this is baz arg.&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="comment"># file: test.py</span></span><br><span class="line"><span class="comment"># ----------------------------</span></span><br><span class="line"><span class="keyword">import</span> bar      <span class="comment"># 报错: ImportError: cannot import name &#x27;bar_arg&#x27;</span></span><br><span class="line">                <span class="comment"># 通常循环导入并不会有问题，因为上面说过，Python 在执行模块代码前会先在 sys.modules 中创建一个空项</span></span><br><span class="line">                <span class="comment"># 然而，像这个例子中的情况还是会报错，过程是：</span></span><br><span class="line">                <span class="comment">## 先尝试导入 bar，创建了 bar 的模块缓存</span></span><br><span class="line">                <span class="comment">## 然后执行 bar 的模块代码，尝试导入 baz</span></span><br><span class="line">                <span class="comment">## 尝试导入 baz 时，也是先创建了 baz 的模块缓存，再执行模块代码</span></span><br><span class="line">                <span class="comment">## 在执行 baz 的模块代码时，又尝试导入 bar，而此时缓存中已经有 bar 了则认为导入成功</span></span><br><span class="line">                <span class="comment">## 然后回去 bar 的模块中导入名字 bar_arg，因为此时 bar 模块缓存还仅仅是个空项没有任务内容，所以抛错</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><em>以上就是本篇全部内容，感谢阅读</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/import/" rel="tag"># import</a>
+              <a href="/tags/module/" rel="tag"># module</a>
+              <a href="/tags/%E6%A8%A1%E5%9D%97/" rel="tag"># 模块</a>
+              <a href="/tags/package/" rel="tag"># package</a>
+              <a href="/tags/%E5%8C%85/" rel="tag"># 包</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/posts/edea7c45.html" rel="next" title="Python | 浅谈热更新原理机制">
+                  Python | 浅谈热更新原理机制 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">Enjee ii</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
